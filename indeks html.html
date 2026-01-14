@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Dashboard Pro v3.4</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --primary: #0f172a;
+            --accent: #0ea5e9;
+            --bg-light: #f1f5f9;
+            --white: #ffffff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg-light); display: flex; height: 100vh; overflow: hidden; color: var(--text-main); }
+
+        /* Login Screen */
+        #login-screen { position: fixed; inset: 0; background: var(--primary); z-index: 99999; display: flex; justify-content: center; align-items: center; color: white; transition: 0.5s; }
+        .login-box { background: rgba(255,255,255,0.05); padding: 40px; border-radius: 24px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 320px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: var(--primary); color: white; display: flex; flex-direction: column; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1); }
+        .sidebar-header { padding: 40px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-header h3 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+        .nav-menu { flex: 1; padding: 20px 12px; }
+        .nav-item { padding: 14px 16px; display: flex; align-items: center; cursor: pointer; transition: 0.3s; color: #94a3b8; font-weight: 500; border-radius: 12px; margin-bottom: 8px; }
+        .nav-item:hover, .nav-item.active { background: rgba(14, 165, 233, 0.15); color: white; }
+        .nav-item.active { color: var(--accent); background: rgba(14, 165, 233, 0.1); }
+        .nav-item i { margin-right: 12px; font-size: 1.2rem; width: 20px; text-align: center; }
+
+        /* Main Area */
+        .main-content { flex: 1; overflow-y: auto; padding: 40px; position: relative; scroll-behavior: smooth; }
+        .page { display: none; max-width: 1050px; margin: 0 auto; animation: slideUp 0.5s ease; }
+        .page.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(25px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card { background: var(--white); border-radius: 24px; padding: 28px; margin-bottom: 24px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .card-header { font-weight: 700; color: var(--primary); margin-bottom: 25px; display: flex; align-items: center; font-size: 1.1rem; }
+        .card-header i { background: #f0f9ff; color: var(--accent); padding: 10px; border-radius: 12px; margin-right: 15px; border: 1px solid #e0f2fe; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        input, select { width: 100%; padding: 14px; border: 1.5px solid var(--border); border-radius: 14px; font-size: 14px; background: #f8fafc; box-sizing: border-box; transition: 0.2s; color: var(--text-main); font-weight: 500; }
+        input:focus, select:focus { outline: none; border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1); }
+
+        /* Pain Scale UI */
+        .pain-box { background: #f8fafc; border-radius: 20px; padding: 20px; text-align: center; border: 1px solid var(--border); }
+        .pain-val { font-size: 3rem; font-weight: 800; margin: 0; line-height: 1; transition: 0.3s; }
+        input[type=range] { width: 100%; height: 10px; border-radius: 5px; appearance: none; background: linear-gradient(to right, #10b981, #f59e0b, #ef4444); cursor: pointer; margin: 25px 0; }
+
+        /* GCS Box */
+        .gcs-result { background: var(--primary); color: white; border-radius: 20px; padding: 25px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+        .gcs-score { font-size: 3.5rem; font-weight: 800; color: var(--accent); line-height: 1; }
+
+        /* Body Mapping */
+        .mapping-wrapper { display: flex; justify-content: space-around; gap: 20px; background: #f8fafc; padding: 20px; border-radius: 20px; border: 1px dashed #cbd5e0; }
+        .human-body { position: relative; width: 140px; }
+        .human-body img { width: 100%; opacity: 0.7; filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1)); }
+        .marker { position: absolute; width: 14px; height: 14px; background: var(--danger); border-radius: 50%; border: 3px solid white; transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); pointer-events: none; }
+
+        /* Signature */
+        .sig-pad { border: 2px solid var(--border); border-radius: 18px; background: #fff; height: 180px; cursor: crosshair; }
+
+        .btn { padding: 14px 28px; border: none; border-radius: 16px; cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 10px; transition: 0.3s; font-size: 14px; }
+        .btn-primary { background: var(--accent); color: white; box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3); }
+        .btn-success { background: var(--success); color: white; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3); }
+        .btn-outline { background: white; color: var(--text-main); border: 1.5px solid var(--border); }
+        .btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+
+        .critical { color: var(--danger) !important; font-weight: 800; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+        td { background: white; padding: 20px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        td:first-child { border-left: 1px solid var(--border); border-radius: 15px 0 0 15px; }
+        td:last-child { border-right: 1px solid var(--border); border-radius: 0 15px 15px 0; }
+
+        @media print { .no-print { display: none !important; } .main-content { padding: 0; } .card { box-shadow: none; border: 1px solid #eee; margin-bottom: 15px; } .page { max-width: 100%; } }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-box">
+        <div style="background: rgba(14, 165, 233, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 25px;">
+            <i class="fas fa-user-md fa-3x" style="color: var(--accent);"></i>
+        </div>
+        <h2 style="margin: 0;">Portal Medis</h2>
+        <p style="color: #94a3b8; font-size: 13px; margin: 10px 0 30px;">Masukkan PIN (Default: 1234)</p>
+        <input type="password" id="pin-input" placeholder="••••" style="text-align:center; font-size: 24px; letter-spacing: 10px; background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: white;">
+        <button class="btn btn-primary" style="width: 100%; margin-top: 25px; justify-content: center;" onclick="checkLogin()">UNLOCK SYSTEM</button>
+    </div>
+</div>
+
+<div class="sidebar no-print">
+    <div class="sidebar-header">
+        <h3><i class="fas fa-stethoscope"></i> NURSE PRO <span style="font-weight: 400; font-size: 0.7rem; opacity: 0.5;">v3.4</span></h3>
+    </div>
+    <div class="nav-menu">
+        <div class="nav-item active" onclick="showPage('assessment-page', this)"><i class="fas fa-notes-medical"></i> Pengkajian Baru</div>
+        <div class="nav-item" onclick="showPage('history-page', this)"><i class="fas fa-folder-open"></i> Riwayat Pasien</div>
+    </div>
+    <div style="padding: 20px; font-size: 10px; color: #475569; text-align: center;">Terenkripsi Secara Lokal</div>
+</div>
+
+<div class="main-content">
+    <div id="assessment-page" class="page active">
+        <div id="printable-area">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px;">
+                <div>
+                    <h1 style="margin: 0; color: var(--primary);">Dokumentasi Pengkajian</h1>
+                    <p style="margin: 5px 0 0 0; color: #64748b;">Lengkapi formulir di bawah untuk hasil laporan otomatis.</p>
+                </div>
+                <div style="text-align: right; color: #64748b; font-size: 0.9rem;">
+                    <i class="fas fa-calendar-alt"></i> <span id="current-date-txt"></span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="fas fa-id-card"></i> Identitas & Antropometri</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Nama Pasien</label><input type="text" id="nama" placeholder="Nama Lengkap"></div>
+                    <div class="form-group"><label>Nomor RM</label><input type="text" id="rm" placeholder="00-00-00"></div>
+                    <div class="form-group"><label>BB (kg)</label><input type="number" id="bb" oninput="calcHemodinamik()"></div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 24px;">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-brain"></i> Skor Kesadaran (GCS)</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <div class="form-group">
+                                <label>Eye (Mata)</label>
+                                <select id="g-e" onchange="calcGCS()">
+                                    <option value="4">4 - Spontan</option>
+                                    <option value="3">3 - Terhadap Suara</option>
+                                    <option value="2">2 - Terhadap Nyeri</option>
+                                    <option value="1">1 - Tidak Ada Respon</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top:15px;">
+                                <label>Verbal (Suara)</label>
+                                <select id="g-v" onchange="calcGCS()">
+                                    <option value="5">5 - Orientasi Baik</option>
+                                    <option value="4">4 - Bingung</option>
+                                    <option value="3">3 - Kata Tidak Tepat</option>
+                                    <option value="2">2 - Suara Tanpa Arti</option>
+                                    <option value="1">1 - Tidak Ada</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-top:15px;">
+                                <label>Motorik (Gerak)</label>
+                                <select id="g-m" onchange="calcGCS()">
+                                    <option value="6">6 - Ikut Perintah</option>
+                                    <option value="5">5 - Melokalisir Nyeri</option>
+                                    <option value="4">4 - Menarik Diri</option>
+                                    <option value="3">3 - Fleksi Abnormal</option>
+                                    <option value="2">2 - Ekstensi Abnormal</option>
+                                    <option value="1">1 - Tidak Ada</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="gcs-result">
+                            <span style="font-size: 0.8rem; text-transform: uppercase; opacity: 0.7;">Skor Total</span>
+                            <div class="gcs-score" id="gcs-total">15</div>
+                            <div id="gcs-label" style="font-weight: 700; margin-top: 10px; color: var(--accent);">COMPOS MENTIS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-wave-square"></i> Intensitas Nyeri</div>
+                    <div class="pain-box">
+                        <div class="pain-val" id="pain-num">0</div>
+                        <input type="range" id="pain-slider" min="0" max="10" value="0" oninput="updatePain()">
+                        <div id="pain-status" style="font-weight: 800; font-size: 1.1rem; color: var(--success);">TIDAK NYERI</div>
+                        <div style="margin-top:20px;">
+                            <input type="text" id="nyeri-loc" placeholder="Lokasi spesifik nyeri...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 24px;">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-heartbeat"></i> Monitoring Vital</div>
+                    <div class="form-grid" style="grid-template-columns: 1fr;">
+                        <div class="form-group">
+                            <label>Tekanan Darah (Systole/Diastole)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="sis" placeholder="Sis" oninput="calcHemodinamik()">
+                                <input type="number" id="dia" placeholder="Dia" oninput="calcHemodinamik()">
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding: 15px; background: #f8fafc; border-radius: 14px; border: 1px solid var(--border);">
+                            <div><label style="font-size: 10px; opacity: 0.7;">MAP (TARGET >65)</label><div id="map-txt" style="font-weight: 800; font-size: 1.2rem;">-</div></div>
+                            <div style="text-align: right;"><label style="font-size: 10px; opacity: 0.7;">EST. BLOOD LOSS</label><div id="ebl-txt" style="font-weight: 800; font-size: 1.2rem; color: var(--accent);">-</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-user-check"></i> Body Mapping Trauma</div>
+                    <div class="mapping-wrapper">
+                        <div class="human-body" id="m-front" onclick="addMarker(event, 'front')">
+                            <img src="https://cdn-icons-png.flaticon.com/512/1035/1035213.png">
+                            <div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; font-weight: 700;">ANTERIOR</div>
+                        </div>
+                        <div class="human-body" id="m-back" onclick="addMarker(event, 'back')">
+                            <img src="https://cdn-icons-png.flaticon.com/512/1035/1035214.png">
+                            <div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; font-weight: 700;">POSTERIOR</div>
+                        </div>
+                    </div>
+                    <center><button class="btn btn-outline" style="margin-top: 30px; padding: 8px 20px; font-size: 11px;" onclick="resetMarkers()">Reset Penanda</button></center>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="fas fa-file-signature"></i> Otoritas Pengkaji</div>
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div>
+                        <div class="form-group"><label>Nama Lengkap & Gelar</label><input type="text" id="pemeriksa" placeholder="cth: Ns. Budi, S.Kep"></div>
+                        <div class="form-group" style="margin-top: 20px;"><label>Waktu Pengkajian</label><input type="text" id="tgl-jam" readonly style="background: #f1f5f9; cursor: not-allowed;"></div>
+                    </div>
+                    <div>
+                        <label>Tanda Tangan Digital</label>
+                        <div class="sig-pad"><canvas id="canvas"></canvas></div>
+                        <button class="btn btn-outline" style="margin-top: 10px; font-size: 11px; padding: 5px 15px;" onclick="clearSig()">Bersihkan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="action-bar no-print" style="display: flex; gap: 15px; justify-content: flex-end; margin-bottom: 50px;">
+            <button class="btn btn-outline" onclick="location.reload()">Sesi Baru</button>
+            <button class="btn btn-primary" onclick="generatePDF()"><i class="fas fa-print"></i> Cetak Laporan PDF</button>
+            <button class="btn btn-success" onclick="saveData()"><i class="fas fa-save"></i> Simpan ke Riwayat</button>
+        </div>
+    </div>
+
+    <div id="history-page" class="page">
+        <div style="margin-bottom: 30px;">
+            <h1 style="margin: 0;">Arsip Data Pasien</h1>
+            <p style="color: #64748b;">Data disimpan di memori browser perangkat ini.</p>
+        </div>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr style="text-align: left; color: #64748b; font-size: 12px;">
+                        <th style="padding: 10px;">TANGGAL/JAM</th>
+                        <th>NAMA PASIEN</th>
+                        <th>NO. RM</th>
+                        <th>PEMERIKSA</th>
+                    </tr>
+                </thead>
+                <tbody id="history-list"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let markers = [];
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    // Login logic
+    function checkLogin() {
+        if(document.getElementById('pin-input').value === "1234") {
+            document.getElementById('login-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('login-screen').style.display = 'none';
+                initCanvas();
+            }, 500);
+        } else { alert("PIN Salah!"); }
+    }
+
+    // Auto update clock
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('tgl-jam').value = now.toLocaleString('id-ID');
+        document.getElementById('current-date-txt').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }, 1000);
+
+    // GCS Calculation
+    function calcGCS() {
+        const e = parseInt(document.getElementById('g-e').value);
+        const v = parseInt(document.getElementById('g-v').value);
+        const m = parseInt(document.getElementById('g-m').value);
+        const total = e + v + m;
+        const display = document.getElementById('gcs-total');
+        const label = document.getElementById('gcs-label');
+        
+        display.innerText = total;
+        if(total >= 14) { label.innerText = "COMPOS MENTIS"; label.style.color = "var(--success)"; }
+        else if(total >= 12) { label.innerText = "APATIS"; label.style.color = "var(--warning)"; }
+        else if(total >= 10) { label.innerText = "DELIRIUM"; label.style.color = "var(--warning)"; }
+        else if(total >= 7) { label.innerText = "SOMNOLEN"; label.style.color = "var(--danger)"; }
+        else if(total >= 4) { label.innerText = "SOPOR"; label.style.color = "var(--danger)"; }
+        else { label.innerText = "COMA"; label.style.color = "#000"; }
+    }
+
+    // Pain Scale Update
+    function updatePain() {
+        const val = document.getElementById('pain-slider').value;
+        const num = document.getElementById('pain-num');
+        const status = document.getElementById('pain-status');
+        num.innerText = val;
+        
+        if(val == 0) { status.innerText = "TIDAK NYERI"; status.style.color = "var(--success)"; num.style.color = "var(--success)"; }
+        else if(val <= 3) { status.innerText = "NYERI RINGAN"; status.style.color = "#84cc16"; num.style.color = "#84cc16"; }
+        else if(val <= 6) { status.innerText = "NYERI SEDANG"; status.style.color = "var(--warning)"; num.style.color = "var(--warning)"; }
+        else if(val <= 9) { status.innerText = "NYERI BERAT"; status.style.color = "var(--danger)"; num.style.color = "var(--danger)"; }
+        else { status.innerText = "NYERI SANGAT BERAT"; status.style.color = "#7f1d1d"; num.style.color = "#7f1d1d"; }
+    }
+
+    // Hemodinamik Calculation
+    function calcHemodinamik() {
+        const s = parseInt(document.getElementById('sis').value);
+        const d = parseInt(document.getElementById('dia').value);
+        const bb = parseInt(document.getElementById('bb').value);
+        
+        if(s && d) {
+            const map = Math.round((s + (2*d))/3);
+            const mapTxt = document.getElementById('map-txt');
+            mapTxt.innerText = map + " mmHg";
+            mapTxt.className = map < 65 ? "critical" : "";
+        }
+        if(bb) {
+            document.getElementById('ebl-txt').innerText = Math.round(bb * 70 * 0.15) + " ml (15%)";
+        }
+    }
+
+    // Body Mapping Markers
+    function addMarker(e, side) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        markers.push({side, x, y});
+        renderMarkers();
+    }
+
+    function renderMarkers() {
+        document.querySelectorAll('.marker').forEach(m => m.remove());
+        markers.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'marker';
+            div.style.left = m.x + '%'; div.style.top = m.y + '%';
+            document.getElementById('m-' + m.side).appendChild(div);
+        });
+    }
+    function resetMarkers() { markers = []; renderMarkers(); }
+
+    // Canvas Signature Init
+    function initCanvas() {
+        canvas.width = canvas.parentElement.offsetWidth;
+        canvas.height = canvas.parentElement.offsetHeight;
+        ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.strokeStyle = '#0f172a';
+    }
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', draw);
+    window.addEventListener('mouseup', stop);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); start(e.touches[0]); });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+
+    function start(e) { drawing = true; const rect = canvas.getBoundingClientRect(); ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top); }
+    function draw(e) { if(!drawing) return; const rect = canvas.getBoundingClientRect(); ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top); ctx.stroke(); }
+    function stop() { drawing = false; }
+    function clearSig() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+    // Navigation
+    function showPage(pageId, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        if(pageId === 'history-page') updateHistoryTable();
+    }
+
+    // Data Storage
+    function saveData() {
+        const patientData = {
+            tgl: document.getElementById('tgl-jam').value,
+            nama: document.getElementById('nama').value || "Tanpa Nama",
+            rm: document.getElementById('rm').value || "-",
+            pemeriksa: document.getElementById('pemeriksa').value || "-"
+        };
+        let history = JSON.parse(localStorage.getItem('nurse_pro_history') || "[]");
+        history.push(patientData);
+        localStorage.setItem('nurse_pro_history', JSON.stringify(history));
+        alert("Data Pasien Berhasil Disimpan ke Riwayat Lokal.");
+    }
+
+    function updateHistoryTable() {
+        const history = JSON.parse(localStorage.getItem('nurse_pro_history') || "[]");
+        const list = document.getElementById('history-list');
+        list.innerHTML = history.reverse().map(item => `
+            <tr>
+                <td style="font-size: 11px;">${item.tgl}</td>
+                <td><b>${item.nama}</b></td>
+                <td>${item.rm}</td>
+                <td>${item.pemeriksa}</td>
+            </tr>
+        `).join('');
+    }
+
+    function generatePDF() {
+        const element = document.getElementById('printable-area');
+        const opt = {
+            margin: 10,
+            filename: `Pengkajian_${document.getElementById('nama').value || 'Pasien'}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().from(element).set(opt).save();
+    }
+</script>
+</body>
+</html>
